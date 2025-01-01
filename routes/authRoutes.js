@@ -50,7 +50,13 @@ router.post("/login", async (req, res) => {
     if (!isValid) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    res.status(200).json({ message: "User logged in successfully" });
+    res
+      .status(200)
+      .json({
+        message: "User logged in successfully",
+        userRole: rows[0].user_role,
+        userId: rows[0].user_id,
+      });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
