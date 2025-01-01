@@ -3,6 +3,8 @@ import { nanoid } from "nanoid";
 import bcrypt from "bcrypt";
 import db from "../db/dbConn.js";
 
+import otpMail from "../smtp/template.js";
+
 const router = Router();
 
 // Register a new user
@@ -50,13 +52,22 @@ router.post("/login", async (req, res) => {
     if (!isValid) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    res
-      .status(200)
-      .json({
-        message: "User logged in successfully",
-        userRole: rows[0].user_role,
-        userId: rows[0].user_id,
-      });
+    res.status(200).json({
+      message: "User logged in successfully",
+      userData: rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// OTP Test
+router.post("/otp-test", async (req, res) => {
+  try {
+    const { user_mail, user_name } = req.body;
+    const otpCode = Math.floor(100000 + Math.random() * 900000);
+    await otpMail({ to: user_mail, otpCode, userName: user_name });
+    res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
