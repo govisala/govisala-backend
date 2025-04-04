@@ -9,6 +9,7 @@ import "dotenv/config";
 
 // import routes
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import notificationTest from "./routes/notificationTest.js";
 import test from "./routes/test.js";
 
@@ -37,6 +38,7 @@ app.get("/", async (req, res) => {
   res.send("Hello World");
 });
 
+app.use("/admin", adminRoutes);
 app.use("/auth", authRoutes);
 app.use("/notifi-test", notificationTest);
 app.use("/test", test);

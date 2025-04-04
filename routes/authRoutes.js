@@ -72,9 +72,9 @@ router.post(
 
       // Insert user into database
       const [result] = await db.query(
-        `INSERT INTO users (user_id,user_mail, user_name, user_tele, user_address, user_district, 
-        user_role, user_pwd, user_img, user_docs, user_status, user_createdAt) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO users (user_id, user_mail, user_name, user_tele, user_address, user_district, 
+        user_role, user_pwd, user_img, user_docs) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           user_id,
           email,
@@ -86,10 +86,25 @@ router.post(
           hashedPassword,
           profileImagePath,
           idDocumentPath,
-          "pending", // Default status - pending verification
         ]
       );
+      //verify if the user is inserted
+      if (result.affectedRows === 0) {
+        return res.status(500).json({ message: "User registration failed" });
+      }
+      // Send OTP email
+      const otpCode = Math.floor(100000 + Math.random() * 900000);
+
+      await otpMail({ to: email, otpCode, userName: name });
       // Return success response
+      // send OTP code to the db
+      const otp_id = nanoid(10);
+      const otpQuery = `INSERT INTO registerOTP (id, user_id, user_mail, otp) VALUES (?, ?, ?, ?)`;
+      db.query(otpQuery, [otp_id, user_id, email, otpCode], (err) => {
+        if (err) {
+          console.error("Error inserting OTP into database:", err);
+        }
+      });
       res.status(201).json({
         message:
           "Registration successful! Your account is pending verification.",
@@ -122,26 +137,6 @@ router.post(
   }
 );
 
-// Admin login
-router.post("/admin/login", async (req, res) => {
-  try {
-    const { admin_mail, admin_pwd } = req.body;
-
-    // Sample mail and password for admin login
-    let mail = "admin@govisala.lk";
-    let password = "admin123";
-    if (admin_mail !== mail || admin_pwd !== password) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    } else {
-      return res.status(200).json({
-        message: "Admin logged in successfully",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 // User - login
 router.post("/login", async (req, res) => {
   try {
@@ -157,14 +152,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    if (rows[0].user_status === "pending") {
+    if (rows[0].user_otp_verified == 0) {
       return res.status(403).json({
         message:
-          "Your account is pending verification. Please check back later.",
-      });
-    } else if (rows[0].user_status === "rejected") {
-      return res.status(403).json({
-        message: "Your account has been rejected. Please contact support.",
+          "Please verify OTP before logging in. Check your email for the OTP.",
       });
     } else {
       return res.status(200).json({
@@ -178,12 +169,21 @@ router.post("/login", async (req, res) => {
 });
 
 // OTP Test
-router.post("/otp-test", async (req, res) => {
+router.post("/otp-verify", async (req, res) => {
   try {
-    const { user_mail, user_name } = req.body;
-    const otpCode = Math.floor(100000 + Math.random() * 900000);
-    await otpMail({ to: user_mail, otpCode, userName: user_name });
-    res.status(200).json({ message: "OTP sent successfully" });
+    const { otp, user_id } = req.body;
+    const query = `SELECT * FROM registerOTP WHERE user_id = ? AND otp = ?`;
+
+    const [rows] = await db.query(query, [user_id, otp]);
+    if (rows.length === 0) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    const deleteQuery = `DELETE FROM registerOTP WHERE id = ?`;
+    await db.query(deleteQuery, [rows[0].id]);
+    const updateQuery = `UPDATE users SET user_otp_verified = 1 WHERE user_id = ?`;
+    await db.query(updateQuery, [user_id]);
+    res.status(200).json({ message: "OTP verified successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
