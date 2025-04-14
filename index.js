@@ -11,6 +11,7 @@ import "dotenv/config";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import notificationTest from "./routes/notificationTest.js";
+import buyerRoutes from "./routes/buyerRouters.js";
 import test from "./routes/test.js";
 
 // import db connection
@@ -42,6 +43,7 @@ app.use("/admin", adminRoutes);
 app.use("/auth", authRoutes);
 app.use("/notifi-test", notificationTest);
 app.use("/test", test);
+app.use("/buyer", buyerRoutes);
 
 // chat socket
 io.on("connection", (socket) => {

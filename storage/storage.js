@@ -8,6 +8,8 @@ const storage = multer.diskStorage({
     const uploadDir =
       file.fieldname === "profileImage"
         ? "./uploads/profiles"
+        : file.fieldname === "buyerReqImages"
+        ? "./uploads/buyerReqImages"
         : "./uploads/documents";
 
     // Create directory if it doesn't exist
