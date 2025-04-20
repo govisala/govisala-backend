@@ -18,7 +18,6 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      const user_id = nanoid(10);
       const {
         email,
         name,
@@ -72,11 +71,8 @@ router.post(
 
       // Insert user into database
       const [result] = await db.query(
-        `INSERT INTO users (user_id, user_mail, user_name, user_tele, user_address, user_district, 
-        user_role, user_pwd, user_img, user_docs) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users(user_mail, user_name, user_tele, user_address, user_district,user_role, user_pwd, user_img, user_docs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          user_id,
           email,
           name,
           contactNumber,
@@ -88,6 +84,7 @@ router.post(
           idDocumentPath,
         ]
       );
+
       //verify if the user is inserted
       if (result.affectedRows === 0) {
         return res.status(500).json({ message: "User registration failed" });
@@ -98,9 +95,8 @@ router.post(
       await otpMail({ to: email, otpCode, userName: name });
       // Return success response
       // send OTP code to the db
-      const otp_id = nanoid(10);
-      const otpQuery = `INSERT INTO registerOTP (id, user_id, user_mail, otp) VALUES (?, ?, ?, ?)`;
-      db.query(otpQuery, [otp_id, user_id, email, otpCode], (err) => {
+      const otpQuery = `INSERT INTO registerOTP (user_id, user_mail, otp) VALUES (?, ?, ?)`;
+      db.query(otpQuery, [result.insertId, email, otpCode], (err) => {
         if (err) {
           console.error("Error inserting OTP into database:", err);
         }
@@ -108,11 +104,11 @@ router.post(
       res.status(201).json({
         message:
           "Registration successful! Your account is pending verification.",
-        user_id: user_id,
+        user_id: result.insertId,
       });
     } catch (error) {
       // Rollback transaction on error
-      await db.rollback();
+      // await db.rollback();
 
       console.error("Registration error:", error);
 

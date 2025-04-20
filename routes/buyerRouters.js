@@ -23,6 +23,7 @@ router.post(
         BidFrom,
         BidTo,
         Addi,
+        UserId,
       } = req.body;
 
       // Generate a unique ID for the request
@@ -30,11 +31,8 @@ router.post(
 
       // Insert the main request data into the database
       const [result] = await db.execute(
-        `INSERT INTO buyer_requests 
-        (request_id, item_name, quantity, quality_grade, location, area, required_date, bid_from, bid_to, additional_notes, user_id, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO buyer_requests (item_name, quantity, quality_grade, location, area, required_date, bid_from, bid_to, additional_notes, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
-          requestId,
           ItemName,
           Quantity,
           Quality,
@@ -44,7 +42,7 @@ router.post(
           BidFrom,
           BidTo,
           Addi,
-          "1231asd",
+          UserId,
         ]
       );
 
