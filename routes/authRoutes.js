@@ -185,4 +185,19 @@ router.post("/otp-verify", async (req, res) => {
   }
 });
 
+// Retrieve user data by ID
+router.get("/user/:user_id", async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const query = `SELECT * FROM users WHERE user_id = ?`;
+    const [rows] = await db.query(query, [user_id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

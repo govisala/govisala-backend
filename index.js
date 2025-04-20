@@ -12,6 +12,7 @@ import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import notificationTest from "./routes/notificationTest.js";
 import buyerRoutes from "./routes/buyerRouters.js";
+import sellerRoutes from "./routes/sellerRouters.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import test from "./routes/test.js";
 
@@ -50,6 +51,7 @@ app.use("/auth", authRoutes);
 app.use("/notifi-test", notificationTest);
 app.use("/test", test);
 app.use("/buyer", buyerRoutes);
+app.use("/seller", sellerRoutes);
 app.use("/chat", chatRoutes);
 
 // chat socket

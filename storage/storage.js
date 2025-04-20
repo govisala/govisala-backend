@@ -10,6 +10,8 @@ const storage = multer.diskStorage({
         ? "./uploads/profiles"
         : file.fieldname === "buyerReqImages"
         ? "./uploads/buyerReqImages"
+        : file.fieldname === "sellerListingImages"
+        ? "./uploads/sellerListingImages"
         : "./uploads/documents";
 
     // Create directory if it doesn't exist

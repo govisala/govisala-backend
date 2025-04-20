@@ -54,7 +54,7 @@ router.post("/verify-user", async (req, res) => {
     }
 
     // Update the user's status to verified
-    const updateQuery = `UPDATE users SET status = 'verified' WHERE user_id = ?`;
+    const updateQuery = `UPDATE users SET user_status = 'verified' WHERE user_id = ?`;
     await db.query(updateQuery, [user_id]);
 
     res.status(200).json({ message: "User verified successfully" });
