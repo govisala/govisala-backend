@@ -125,4 +125,150 @@ router.put("/edit-user", async (req, res) => {
   }
 });
 
+// list all seller listings and their images
+router.get("/seller-listings", async (req, res) => {
+  try {
+    const query = `
+      SELECT sl.*, GROUP_CONCAT(sli.image_path) AS images
+      FROM seller_listings sl
+      LEFT JOIN seller_listings_images sli ON sl.id = sli.listing_id
+      GROUP BY sl.id
+    `;
+    const [rows] = await db.query(query);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No seller listings found" });
+    }
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update seller listing status
+router.put("/update-seller-listing", async (req, res) => {
+  try {
+    const { listing_id, status } = req.body;
+
+    // Check if the listing exists
+    const query = `SELECT * FROM seller_listings WHERE id = ?`;
+    const [rows] = await db.query(query, [listing_id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // Update the listing's status
+    const updateQuery = `UPDATE seller_listings SET status = ? WHERE id = ?`;
+    await db.query(updateQuery, [status, listing_id]);
+
+    res.status(200).json({ message: "Listing status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete seller listing
+router.delete("/delete-seller-listing/:listingId", async (req, res) => {
+  try {
+    const { listingId } = req.params;
+
+    // Delete images associated with the listing
+    const deleteImagesQuery = `DELETE FROM seller_listings_images WHERE listing_id = ?`;
+    await db.query(deleteImagesQuery, [listingId]);
+
+    // Delete the listing
+    const deleteListingQuery = `DELETE FROM seller_listings WHERE id = ?`;
+    const [rows] = await db.query(deleteListingQuery, [listingId]);
+
+    // Check if the listing was deleted
+    if (rows.affectedRows === 0) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    res.status(200).json({ message: "Listing deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Approve seller listing
+router.post("/approve-seller-listing", async (req, res) => {
+  try {
+    const { listing_id } = req.body;
+
+    // Check if the listing exists
+    const query = `SELECT * FROM seller_listings WHERE id = ?`;
+    const [rows] = await db.query(query, [listing_id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // Update the listing's status to approved
+    const updateQuery = `UPDATE seller_listings SET status = 'approved' WHERE id = ?`;
+    await db.query(updateQuery, [listing_id]);
+
+    res.status(200).json({ message: "Listing approved successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Reject seller listing
+router.post("/reject-seller-listing", async (req, res) => {
+  try {
+    const { listing_id } = req.body;
+
+    // Check if the listing exists
+    const query = `SELECT * FROM seller_listings WHERE id = ?`;
+    const [rows] = await db.query(query, [listing_id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // Update the listing's status to rejected
+    const updateQuery = `UPDATE seller_listings SET status = 'rejected' WHERE id = ?`;
+    await db.query(updateQuery, [listing_id]);
+
+    res.status(200).json({ message: "Listing rejected successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Retrieve all buyer requests
+router.get("/buyer-requests", async (req, res) => {
+  try {
+    const query = `SELECT * FROM buyer_requests`;
+    const [rows] = await db.query(query);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No buyer requests found" });
+    }
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// update-listing-status/2
+router.put("/update-listing-status/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Check if the listing exists
+    const query = `SELECT * FROM seller_listings WHERE id = ?`;
+    const [rows] = await db.query(query, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // Update the listing's status
+    const updateQuery = `UPDATE seller_listings SET status = ? WHERE id = ?`;
+    await db.query(updateQuery, [status, id]);
+
+    res.status(200).json({ message: "Listing status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
