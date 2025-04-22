@@ -190,6 +190,30 @@ router.delete("/delete-seller-listing/:listingId", async (req, res) => {
   }
 });
 
+// Delete buyer request
+router.delete("/delete-buyer-request/:requestId", async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    // Delete images associated with the request
+    const deleteImagesQuery = `DELETE FROM buyer_req_images WHERE request_id = ?`;
+    await db.query(deleteImagesQuery, [requestId]);
+
+    // Delete the request
+    const deleteRequestQuery = `DELETE FROM buyer_requests WHERE id = ?`;
+    const [rows] = await db.query(deleteRequestQuery, [requestId]);
+
+    // Check if the request was deleted
+    if (rows.affectedRows === 0) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    res.status(200).json({ message: "Request deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Approve seller listing
 router.post("/approve-seller-listing", async (req, res) => {
   try {

@@ -22,14 +22,16 @@ router.post(
         UnitPrice,
         Addi,
         UserId,
+        StkType,
       } = req.body;
 
       // Insert the main request data into the database
       const [result] = await db.execute(
-        `INSERT INTO seller_listings (user_id, item_name, quantity, quality_grade, location, area, harvest_date, unit_price, additional_notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO seller_listings (user_id, item_name, stk_type, quantity, quality_grade, location, area, harvest_date, unit_price, additional_notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           UserId,
           ItemName,
+          StkType,
           Quantity,
           Quality,
           Location,
@@ -210,6 +212,99 @@ router.delete("/delete-listing/:listingId", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete seller listing",
+      error: error.message,
+    });
+  }
+});
+
+// update clicks count
+router.put("/update-clicks/:listingId", async (req, res) => {
+  try {
+    const { listingId } = req.params;
+
+    // Update the clicks count
+    await db.execute(
+      `
+      UPDATE seller_listings 
+      SET clicks = clicks + 1 
+      WHERE id = ?
+    `,
+      [listingId]
+    );
+
+    res.json({
+      success: true,
+      message: "Clicks count updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating clicks count:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update clicks count",
+      error: error.message,
+    });
+  }
+});
+
+//post bid request
+router.post("/post-bid-request", async (req, res) => {
+  try {
+    const { postId, bidAmount, notes, userId } = req.body;
+
+    // Insert the bid request into the database
+    const [result] = await db.execute(
+      `INSERT INTO bids (req_id, seller_id, bid_amount, bid_msg) VALUES (?, ?, ?, ?)`,
+      [postId, userId, bidAmount, notes]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Bid request created successfully",
+      data: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating bid request:", error);
+
+    // Check for duplicate entry error (for composite unique key violation)
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        success: false,
+        message: "You have already placed a bid on this request",
+        error: "Duplicate bid",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to create bid request",
+      error: error.message,
+    });
+  }
+});
+
+//delete bid request
+router.delete("/delete-bid-request/:bidId", async (req, res) => {
+  try {
+    const { bidId } = req.params;
+
+    // Delete the bid request
+    await db.execute(
+      `
+      DELETE FROM bids 
+      WHERE id = ?
+    `,
+      [bidId]
+    );
+
+    res.json({
+      success: true,
+      message: "Bid request deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting bid request:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete bid request",
       error: error.message,
     });
   }

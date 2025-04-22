@@ -200,4 +200,42 @@ router.get("/user/:user_id", async (req, res) => {
   }
 });
 
+// update password
+router.put("/update-password", async (req, res) => {
+  try {
+    const { user_id, oldPassword, newPassword } = req.body;
+    const query = `SELECT * FROM users WHERE user_id = ?`;
+    const [rows] = await db.query(query, [user_id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const hashedPwd = rows[0].user_pwd;
+    const isValid = await bcrypt.compare(oldPassword, hashedPwd);
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const updateQuery = `UPDATE users SET user_pwd = ? WHERE user_id = ?`;
+    await db.query(updateQuery, [hashedNewPassword, user_id]);
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// get user average rating and count of rating records for each user from ratings database
+router.get("/user-rating/:user_id", async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const query = `SELECT AVG(value) AS average_rating, COUNT(*) AS rating_count FROM ratings WHERE user_id = ?`;
+    const [rows] = await db.query(query, [user_id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

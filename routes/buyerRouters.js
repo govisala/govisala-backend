@@ -23,14 +23,18 @@ router.post(
         BidTo,
         Addi,
         UserId,
+        StkType,
       } = req.body;
+
+      console.log(req.body.StkType);
 
       // Insert the main request data into the database
       const [result] = await db.execute(
-        `INSERT INTO buyer_requests (item_name, quantity, quality_grade, location, area, required_date, bid_from, bid_to, additional_notes, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO buyer_requests (item_name, quantity, stk_type, quality_grade, location, area, required_date, bid_from, bid_to, additional_notes, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           ItemName,
           Quantity,
+          StkType,
           Quality,
           Location,
           Area,
@@ -135,10 +139,7 @@ router.get("/buyer-request/:requestId", async (req, res) => {
     const { requestId } = req.params;
 
     const [rows] = await db.execute(
-      `
-      SELECT * FROM buyer_requests 
-      WHERE request_id = ?
-    `,
+      `SELECT * FROM buyer_requests WHERE id = ?`,
       [requestId]
     );
 
@@ -152,7 +153,7 @@ router.get("/buyer-request/:requestId", async (req, res) => {
     // Fetch images for the request
     const [images] = await db.execute(
       `
-      SELECT image_id, image_path FROM request_images 
+      SELECT id, image_path FROM buyer_req_images 
       WHERE request_id = ?
     `,
       [requestId]
@@ -212,6 +213,103 @@ router.delete("/delete-req/:requestId", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete buyer request",
+      error: error.message,
+    });
+  }
+});
+
+//update clicks count one by one
+router.put("/update-clicks/:requestId", async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    // Update the clicks count
+    await db.execute(
+      `
+      UPDATE buyer_requests 
+      SET clicks = clicks + 1 
+      WHERE id = ?
+    `,
+      [requestId]
+    );
+
+    res.json({
+      success: true,
+      message: "Clicks count updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating clicks count:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update clicks count",
+      error: error.message,
+    });
+  }
+});
+
+// fetch bids yousing buyer req id
+router.get("/bids/:requestId", async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    // needs to join with user table to get the user name
+    const [rows] = await db.execute(
+      `SELECT b.*, u.user_name AS user_name FROM bids b JOIN users u ON b.seller_id = u.user_id WHERE b.req_id = ?`,
+      [requestId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No bids found for this request",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error fetching bids:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bids",
+      error: error.message,
+    });
+  }
+});
+
+// create transaction end point
+router.post("/create-transaction", async (req, res) => {
+  try {
+    const { senderId, recieverId, amount, fees } = req.body;
+
+    // Input validation
+    if (!senderId || !recieverId || !amount || fees === undefined) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields: senderId, recieverId, amount, and fees are required",
+      });
+    }
+
+    // Insert the transaction into the database
+    const [result] = await db.execute(
+      `INSERT INTO transactions (sender_id, reciever_id, amount, fees, created_at) VALUES (?, ?, ?, ?, NOW())`,
+      [senderId, recieverId, amount, fees]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Transaction created successfully",
+      data: {
+        transactionId: result.insertId,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating transaction:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create transaction",
       error: error.message,
     });
   }
